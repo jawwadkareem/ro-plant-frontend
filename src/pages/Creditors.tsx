@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, AlertTriangle, CheckCircle, Clock, Phone } from 'lucide-react';
+import { Plus, AlertTriangle, CheckCircle, Clock, Phone, Edit, Trash2 } from 'lucide-react';
 import { creditorService } from '../services/api';
 import { format } from 'date-fns';
 
@@ -20,8 +20,10 @@ const Creditors: React.FC = () => {
   const [creditors, setCreditors] = useState<Creditor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCreditor, setSelectedCreditor] = useState<Creditor | null>(null);
   const [formData, setFormData] = useState({
+    _id: '',
     name: '',
     phone: '',
     billAmount: '',
@@ -58,9 +60,9 @@ const Creditors: React.FC = () => {
       };
       
       let updatedCreditor;
-      if (selectedCreditor) {
-        updatedCreditor = await creditorService.update(selectedCreditor._id, creditorData);
-        setCreditors(creditors.map(c => c._id === selectedCreditor._id ? updatedCreditor : c));
+      if (formData._id) {
+        updatedCreditor = await creditorService.update(formData._id, creditorData);
+        setCreditors(creditors.map(c => c._id === updatedCreditor._id ? updatedCreditor : c));
       } else {
         updatedCreditor = await creditorService.create(creditorData);
         setCreditors([...creditors, updatedCreditor]);
@@ -68,6 +70,7 @@ const Creditors: React.FC = () => {
       
       await fetchCreditors();
       setShowModal(false);
+      setShowEditModal(false);
       resetForm();
     } catch (error) {
       console.error('Error saving creditor:', error);
@@ -98,6 +101,7 @@ const Creditors: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
+      _id: '',
       name: '',
       phone: '',
       billAmount: '',
@@ -112,17 +116,19 @@ const Creditors: React.FC = () => {
     if (creditor) {
       setSelectedCreditor(creditor);
       setFormData({
+        _id: creditor._id,
         name: creditor.name,
         phone: creditor.phone || '',
         billAmount: creditor.billAmount.toString(),
         description: creditor.description,
-        dueDate: creditor.dueDate ? format(new Date(creditor.dueDate), 'yyyy-MM-dd') : '',
+        dueDate: format(new Date(), 'yyyy-MM-dd'), // Default to today's date on update
         notes: creditor.notes || ''
       });
+      setShowEditModal(true);
     } else {
       resetForm();
+      setShowModal(true);
     }
-    setShowModal(true);
   };
 
   const pendingCreditors = creditors.filter(c => !c.isPaid);
@@ -266,7 +272,15 @@ const Creditors: React.FC = () => {
                         className="btn btn-outline text-sm"
                         onClick={() => openModal(creditor)}
                       >
+                        <Edit size={16} />
                         Edit
+                      </button>
+                      <button 
+                        className="btn btn-danger text-sm"
+                        onClick={() => handleDelete(creditor._id)}
+                      >
+                        <Trash2 size={16} />
+                        Delete
                       </button>
                     </div>
 
@@ -347,13 +361,13 @@ const Creditors: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add Modal */}
       {showModal && (
         <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header flex justify-between items-center mb-4">
               <h2 className="modal-title text-xl font-semibold text-gray-900">
-                {selectedCreditor ? 'Edit Creditor' : 'Add New Creditor'}
+                Add New Creditor
               </h2>
               <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowModal(false)}>
                 ×
@@ -436,7 +450,104 @@ const Creditors: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary px-4 py-2 text-sm" disabled={isSubmitting}>
-                  {selectedCreditor ? 'Update Creditor' : 'Add Creditor'}
+                  Add Creditor
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
+          <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header flex justify-between items-center mb-4">
+              <h2 className="modal-title text-xl font-semibold text-gray-900">
+                Edit Creditor
+              </h2>
+              <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowEditModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Name *</label>
+                  <input
+                    type="text"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    type="tel"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Bill Amount (Rs.) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.billAmount}
+                    onChange={(e) => setFormData({ ...formData, billAmount: e.target.value })}
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Due Date</label>
+                  <input
+                    type="date"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Description *</label>
+                <input
+                  type="text"
+                  className="form-input w-full p-2 border rounded text-sm"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="What is this bill for?"
+                  required
+                />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  className="form-input w-full p-2 border rounded text-sm"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Any additional information..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button type="button" className="btn btn-outline px-4 py-2 text-sm" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary px-4 py-2 text-sm" disabled={isSubmitting}>
+                  Update Creditor
                 </button>
               </div>
             </form>
