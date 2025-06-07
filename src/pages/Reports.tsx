@@ -459,7 +459,6 @@
 
 // export default Reports;
 
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, TrendingDown, FileText, Download } from 'lucide-react';
 import { reportService } from '../services/api';
@@ -581,70 +580,66 @@ const Reports: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
         <div className="spinner"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="page-header py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+    <div>
+      <div className="page-header">
+        <div className="container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-              <p className="page-subtitle text-sm md:text-base text-gray-600">Comprehensive business insights</p>
+              <h1 className="page-title">Reports & Analytics</h1>
+              <p className="page-subtitle">Comprehensive business insights</p>
             </div>
-            <button
-              className="btn btn-secondary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
-              onClick={exportReport}
-              disabled={!reportData}
-            >
-              <Download size={16} />
+            <button className="btn btn-secondary" onClick={exportReport} disabled={!reportData}>
+              <Download size={20} />
               Export Report
             </button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container">
         {/* Date Range Controls */}
-        <div className="card bg-white p-4 md:p-6 rounded-lg shadow mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <Calendar size={18} color="#2563eb" />
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Calendar size={20} color="#2563eb" />
               <input
                 type="date"
-                className="form-input p-2 border rounded text-sm md:text-base"
+                className="form-input"
                 value={dateRange.startDate}
                 onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                style={{ width: 'auto' }}
               />
-              <span className="text-gray-500 text-sm md:text-base">to</span>
+              <span style={{ color: '#64748b' }}>to</span>
               <input
                 type="date"
-                className="form-input p-2 border rounded text-sm md:text-base"
+                className="form-input"
                 value={dateRange.endDate}
                 onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                style={{ width: 'auto' }}
               />
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button className="btn btn-outline px-3 py-1.5 text-sm md:text-base" onClick={() => setQuickRange(7)}>
+            
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-outline" onClick={() => setQuickRange(7)}>
                 Last 7 Days
               </button>
-              <button className="btn btn-outline px-3 py-1.5 text-sm md:text-base" onClick={() => setQuickRange(30)}>
+              <button className="btn btn-outline" onClick={() => setQuickRange(30)}>
                 Last 30 Days
               </button>
-              <button
-                className="btn btn-outline px-3 py-1.5 text-sm md:text-base"
-                onClick={() => {
-                  const now = new Date();
-                  setDateRange({
-                    startDate: format(startOfMonth(now), 'yyyy-MM-dd'),
-                    endDate: format(endOfMonth(now), 'yyyy-MM-dd')
-                  });
-                }}
-              >
+              <button className="btn btn-outline" onClick={() => {
+                const now = new Date();
+                setDateRange({
+                  startDate: format(startOfMonth(now), 'yyyy-MM-dd'),
+                  endDate: format(endOfMonth(now), 'yyyy-MM-dd')
+                });
+              }}>
                 This Month
               </button>
             </div>
@@ -653,55 +648,47 @@ const Reports: React.FC = () => {
 
         {/* Summary Cards */}
         {reportData && (
-          <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="stat-card success p-4 rounded-lg shadow">
-              <div className="stat-icon flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
-                <TrendingUp size={20} />
+          <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+            <div className="stat-card success">
+              <div className="stat-icon">
+                <TrendingUp size={24} />
               </div>
-              <div className="stat-value text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                Rs.{reportData.summary.totalSales.toLocaleString()}
-              </div>
-              <div className="stat-label text-sm md:text-base text-gray-600">Total Sales</div>
+              <div className="stat-value">Rs.{reportData.summary.totalSales.toLocaleString()}</div>
+              <div className="stat-label">Total Sales</div>
             </div>
 
-            <div className="stat-card danger p-4 rounded-lg shadow">
-              <div className="stat-icon flex items-center justify-center w-10 h-10 bg-red-100 rounded-full">
-                <TrendingDown size={20} />
+            <div className="stat-card danger">
+              <div className="stat-icon" style={{ background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626' }}>
+                <TrendingDown size={24} />
               </div>
-              <div className="stat-value text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                Rs.{reportData.summary.totalExpenses.toLocaleString()}
-              </div>
-              <div className="stat-label text-sm md:text-base text-gray-600">Total Expenses</div>
+              <div className="stat-value">Rs.{reportData.summary.totalExpenses.toLocaleString()}</div>
+              <div className="stat-label">Total Expenses</div>
             </div>
 
-            <div className={`stat-card ${reportData.summary.totalProfit >= 0 ? 'success' : 'danger'} p-4 rounded-lg shadow`}>
-              <div className="stat-icon flex items-center justify-center w-10 h-10 rounded-full" style={{ 
+            <div className={`stat-card ${reportData.summary.totalProfit >= 0 ? 'success' : 'danger'}`}>
+              <div className="stat-icon" style={{ 
                 background: reportData.summary.totalProfit >= 0 ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)',
                 color: reportData.summary.totalProfit >= 0 ? '#059669' : '#dc2626'
               }}>
-                {reportData.summary.totalProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                {reportData.summary.totalProfit >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
               </div>
-              <div className="stat-value text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                Rs.{reportData.summary.totalProfit.toLocaleString()}
-              </div>
-              <div className="stat-label text-sm md:text-base text-gray-600">Net Profit</div>
+              <div className="stat-value">Rs.{reportData.summary.totalProfit.toLocaleString()}</div>
+              <div className="stat-label">Net Profit</div>
             </div>
 
-            <div className="stat-card p-4 rounded-lg shadow">
-              <div className="stat-icon flex items-center justify-center w-10 h-10 bg-teal-100 rounded-full">
-                <FileText size={20} />
+            <div className="stat-card">
+              <div className="stat-icon" style={{ background: 'rgba(13, 148, 136, 0.1)', color: '#0d9488' }}>
+                <FileText size={24} />
               </div>
-              <div className="stat-value text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                Rs.{reportData.summary.avgDailyProfit.toLocaleString()}
-              </div>
-              <div className="stat-label text-sm md:text-base text-gray-600">Avg Daily Profit</div>
+              <div className="stat-value">Rs.{reportData.summary.avgDailyProfit.toLocaleString()}</div>
+              <div className="stat-label">Avg Daily Profit</div>
             </div>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="card bg-white p-4 md:p-6 rounded-lg shadow mb-6">
-          <div className="flex overflow-x-auto md:overflow-hidden border-b border-gray-200">
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0' }}>
             {[
               { key: 'overview', label: 'Overview' },
               { key: 'sales', label: 'Sales Analysis' },
@@ -711,52 +698,62 @@ const Reports: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`px-4 py-2 text-sm md:text-base font-medium whitespace-nowrap ${activeTab === tab.key ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                style={{
+                  padding: '1rem 1.5rem',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  color: activeTab === tab.key ? '#2563eb' : '#64748b',
+                  borderBottom: activeTab === tab.key ? '2px solid #2563eb' : '2px solid transparent',
+                  transition: 'all 0.2s ease'
+                }}
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="p-4 md:p-6">
+          <div style={{ padding: '2rem' }}>
             {activeTab === 'overview' && reportData && (
               <div>
-                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">Business Overview</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <h3 style={{ marginBottom: '1.5rem' }}>Business Overview</h3>
+                <div className="grid grid-2">
                   <div>
-                    <h4 className="text-md md:text-lg font-medium mb-3 text-gray-700">Key Metrics</h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
+                    <h4 style={{ marginBottom: '1rem', color: '#374151' }}>Key Metrics</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Profit Margin:</span>
-                        <span className="font-semibold">
+                        <span style={{ fontWeight: '600' }}>
                           {reportData.summary.totalSales > 0 
                             ? ((reportData.summary.totalProfit / reportData.summary.totalSales) * 100).toFixed(1)
                             : '0'
                           }%
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Days in Period:</span>
-                        <span className="font-semibold">
+                        <span style={{ fontWeight: '600' }}>
                           {Math.ceil((new Date(dateRange.endDate).getTime() - new Date(dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Avg Daily Sales:</span>
-                        <span className="font-semibold">
+                        <span style={{ fontWeight: '600' }}>
                           Rs.{Math.round(reportData.summary.totalSales / Math.max(1, Math.ceil((new Date(dateRange.endDate).getTime() - new Date(dateRange.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)).toLocaleString()}
                         </span>
                       </div>
                     </div>
                   </div>
+                  
                   <div>
-                    <h4 className="text-md md:text-lg font-medium mb-3 text-gray-700">Performance Status</h4>
-                    <div className="space-y-3">
-                      <div className={`alert p-2 rounded ${reportData.summary.totalProfit > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    <h4 style={{ marginBottom: '1rem', color: '#374151' }}>Performance Status</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div className={`alert ${reportData.summary.totalProfit > 0 ? 'alert-success' : 'alert-warning'}`}>
                         {reportData.summary.totalProfit > 0 ? 'Business is profitable' : 'Business needs attention'}
                       </div>
                       {reportData.summary.totalSales > reportData.summary.totalExpenses * 2 && (
-                        <div className="alert p-2 rounded bg-green-100 text-green-800">
+                        <div className="alert alert-success">
                           Excellent cost control maintained
                         </div>
                       )}
@@ -768,34 +765,34 @@ const Reports: React.FC = () => {
 
             {activeTab === 'sales' && reportData && (
               <div>
-                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">Sales Analysis</h3>
+                <h3 style={{ marginBottom: '1.5rem' }}>Sales Analysis</h3>
                 {reportData.sales.length > 0 ? (
-                  <div className="table-container overflow-x-auto">
-                    <table className="table w-full text-sm md:text-base">
+                  <div className="table-container">
+                    <table className="table">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="p-2 md:p-3 text-left">Date</th>
-                          <th className="p-2 md:p-3 text-left">Units Sold</th>
-                          <th className="p-2 md:p-3 text-left">Sales Amount</th>
-                          <th className="p-2 md:p-3 text-left">Avg Rate</th>
+                        <tr>
+                          <th>Date</th>
+                          <th>Units Sold</th>
+                          <th>Sales Amount</th>
+                          <th>Avg Rate</th>
                         </tr>
                       </thead>
                       <tbody>
                         {reportData.sales.map((sale, index) => (
-                          <tr key={index} className="border-b">
-                            <td className="p-2 md:p-3">{format(new Date(sale.date), 'MMM d, yyyy')}</td>
-                            <td className="p-2 md:p-3">{sale.units}</td>
-                            <td className="p-2 md:p-3 font-semibold text-green-600">
+                          <tr key={index}>
+                            <td>{format(new Date(sale.date), 'MMM d, yyyy')}</td>
+                            <td>{sale.units}</td>
+                            <td style={{ fontWeight: '600', color: '#059669' }}>
                               Rs.{sale.amount.toLocaleString()}
                             </td>
-                            <td className="p-2 md:p-3">Rs.{sale.units > 0 ? (sale.amount / sale.units).toFixed(2) : '0'}</td>
+                            <td>Rs.{sale.units > 0 ? (sale.amount / sale.units).toFixed(2) : '0'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center p-6 text-gray-500">
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                     No sales data available for selected period
                   </div>
                 )}
@@ -804,29 +801,29 @@ const Reports: React.FC = () => {
 
             {activeTab === 'expenses' && reportData && (
               <div>
-                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">Expense Analysis</h3>
+                <h3 style={{ marginBottom: '1.5rem' }}>Expense Analysis</h3>
                 {reportData.expenses.length > 0 ? (
-                  <div className="table-container overflow-x-auto">
-                    <table className="table w-full text-sm md:text-base">
+                  <div className="table-container">
+                    <table className="table">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="p-2 md:p-3 text-left">Date</th>
-                          <th className="p-2 md:p-3 text-left">Category</th>
-                          <th className="p-2 md:p-3 text-left">Amount</th>
-                          <th className="p-2 md:p-3 text-left">% of Total</th>
+                        <tr>
+                          <th>Date</th>
+                          <th>Category</th>
+                          <th>Amount</th>
+                          <th>% of Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {reportData.expenses.map((expense, index) => (
-                          <tr key={index} className="border-b">
-                            <td className="p-2 md:p-3">{format(new Date(expense.date), 'MMM d, yyyy')}</td>
-                            <td className="p-2 md:p-3">
-                              <span className="badge badge-info p-1 text-xs md:text-sm">{expense.type}</span>
+                          <tr key={index}>
+                            <td>{format(new Date(expense.date), 'MMM d, yyyy')}</td>
+                            <td>
+                              <span className="badge badge-info">{expense.type}</span>
                             </td>
-                            <td className="p-2 md:p-3 font-semibold text-red-600">
+                            <td style={{ fontWeight: '600', color: '#dc2626' }}>
                               Rs.{expense.amount.toLocaleString()}
                             </td>
-                            <td className="p-2 md:p-3">
+                            <td>
                               {reportData.summary.totalExpenses > 0 
                                 ? ((expense.amount / reportData.summary.totalExpenses) * 100).toFixed(1)
                                 : '0'
@@ -838,7 +835,7 @@ const Reports: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center p-6 text-gray-500">
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                     No expense data available for selected period
                   </div>
                 )}
@@ -847,37 +844,46 @@ const Reports: React.FC = () => {
 
             {activeTab === 'profit' && reportData && (
               <div>
-                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">Profit Trends</h3>
+                <h3 style={{ marginBottom: '1.5rem' }}>Profit Trends</h3>
                 {reportData.profit.length > 0 ? (
-                  <div className="table-container overflow-x-auto">
-                    <table className="table w-full text-sm md:text-base">
+                  <div className="table-container">
+                    <table className="table">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="p-2 md:p-3 text-left">Date</th>
-                          <th className="p-2 md:p-3 text-left">Daily Profit</th>
-                          <th className="p-2 md:p-3 text-left">Status</th>
-                          <th className="p-2 md:p-3 text-left">Trend</th>
+                        <tr>
+                          <th>Date</th>
+                          <th>Daily Profit</th>
+                          <th>Status</th>
+                          <th>Trend</th>
                         </tr>
                       </thead>
                       <tbody>
                         {reportData.profit.map((day, index) => {
                           const prevProfit = index > 0 ? reportData.profit[index - 1].profit : day.profit;
                           const trend = day.profit - prevProfit;
+                          
                           return (
-                            <tr key={index} className="border-b">
-                              <td className="p-2 md:p-3">{format(new Date(day.date), 'MMM d, yyyy')}</td>
-                              <td className="p-2 md:p-3 font-semibold" style={{ color: day.profit >= 0 ? '#059669' : '#dc2626' }}>
+                            <tr key={index}>
+                              <td>{format(new Date(day.date), 'MMM d, yyyy')}</td>
+                              <td style={{ 
+                                fontWeight: '600', 
+                                color: day.profit >= 0 ? '#059669' : '#dc2626' 
+                              }}>
                                 Rs.{day.profit.toLocaleString()}
                               </td>
-                              <td className="p-2 md:p-3">
-                                <span className={`badge ${day.profit >= 0 ? 'badge-success' : 'badge-danger'} p-1 text-xs md:text-sm`}>
+                              <td>
+                                <span className={`badge ${day.profit >= 0 ? 'badge-success' : 'badge-danger'}`}>
                                   {day.profit >= 0 ? 'Profitable' : 'Loss'}
                                 </span>
                               </td>
-                              <td className="p-2 md:p-3">
+                              <td>
                                 {index > 0 && (
-                                  <div className="flex items-center gap-1" style={{ color: trend >= 0 ? '#059669' : '#dc2626' }}>
-                                    {trend >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.25rem',
+                                    color: trend >= 0 ? '#059669' : '#dc2626'
+                                  }}>
+                                    {trend >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                                     {trend >= 0 ? '+' : ''}Rs.{trend.toLocaleString()}
                                   </div>
                                 )}
@@ -889,7 +895,7 @@ const Reports: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="text-center p-6 text-gray-500">
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                     No profit data available for selected period
                   </div>
                 )}
