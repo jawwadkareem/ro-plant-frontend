@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, Phone, MapPin } from 'lucide-react';
 import { customerService } from '../services/api';
@@ -21,6 +20,7 @@ interface HistoryItem {
   date: string;
   amount: number;
   units: number;
+  counterCash: number; // Added to track cash received
   notes?: string;
 }
 
@@ -419,23 +419,41 @@ const Customers: React.FC = () => {
                       <th style={{ padding: '0.5rem', textAlign: 'left', color: '#64748b' }}>Sale ID</th>
                       <th style={{ padding: '0.5rem', textAlign: 'left', color: '#64748b' }}>Amount</th>
                       <th style={{ padding: '0.5rem', textAlign: 'left', color: '#64748b' }}>Units</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', color: '#64748b' }}>Amount Left</th>
                       <th style={{ padding: '0.5rem', textAlign: 'left', color: '#64748b' }}>Notes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {historyData.map((item) => (
-                      <tr key={item._id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '0.5rem' }}>{new Date(item.date).toLocaleDateString()}</td>
-                        <td style={{ padding: '0.5rem' }}>{item.saleId}</td>
-                        <td style={{ padding: '0.5rem', fontWeight: '600', color: '#059669' }}>
-                          Rs.{item.amount.toLocaleString()}
-                        </td>
-                        <td style={{ padding: '0.5rem' }}>{item.units}</td>
-                        <td style={{ padding: '0.5rem' }}>{item.notes || '-'}</td>
-                      </tr>
-                    ))}
+                    {historyData.map((item) => {
+                      const amountLeft = item.amount - item.counterCash;
+                      return (
+                        <tr key={item._id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={{ padding: '0.5rem' }}>{new Date(item.date).toLocaleDateString()}</td>
+                          <td style={{ padding: '0.5rem' }}>{item.saleId}</td>
+                          <td style={{ padding: '0.5rem', fontWeight: '600', color: '#059669' }}>
+                            Rs.{item.amount.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>{item.units}</td>
+                          <td style={{ padding: '0.5rem', fontWeight: '600', color: amountLeft > 0 ? '#dc2626' : '#065f46' }}>
+                            Rs.{amountLeft.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>{item.notes || '-'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+                <div style={{ 
+                  marginTop: '1rem', 
+                  fontSize: '0.875rem', 
+                  fontWeight: '600', 
+                  color: '#1e293b', 
+                  textAlign: 'right' 
+                }}>
+                  Total Amount Left to Pay: Rs.{
+                    historyData.reduce((sum, item) => sum + (item.amount - item.counterCash), 0).toLocaleString()
+                  }
+                </div>
               </div>
             ) : (
               <div style={{ 
