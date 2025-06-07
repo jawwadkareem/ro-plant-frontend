@@ -10,12 +10,6 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -43,5 +37,4 @@
       "destination": "/new-path",
       "permanent": true
     }
-  ]
-}
+  ]}
