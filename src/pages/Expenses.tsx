@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, TrendingDown, Tag, Receipt } from 'lucide-react';
+import { Plus, Calendar, TrendingDown, Tag, Receipt, Edit, Trash2 } from 'lucide-react';
 import { expenseService } from '../services/api';
 import { format } from 'date-fns';
 
@@ -30,8 +29,10 @@ const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formData, setFormData] = useState({
+    _id: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     type: '',
     amount: '',
@@ -39,6 +40,7 @@ const Expenses: React.FC = () => {
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
   useEffect(() => {
     fetchExpenses();
@@ -66,27 +68,66 @@ const Expenses: React.FC = () => {
         amount: parseFloat(formData.amount)
       };
       
-      const newExpense = await expenseService.create(expenseData);
-      setExpenses([...expenses, newExpense]);
+      if (formData._id) {
+        const updatedExpense = await expenseService.update(formData._id, expenseData);
+        setExpenses(expenses.map(exp => exp._id === updatedExpense._id ? updatedExpense : exp));
+      } else {
+        const newExpense = await expenseService.create(expenseData);
+        setExpenses([...expenses, newExpense]);
+      }
+      
       await fetchExpenses();
       setShowModal(false);
+      setShowEditModal(false);
       resetForm();
     } catch (error) {
-      console.error('Error creating expense:', error);
+      console.error('Error saving expense:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this expense?')) {
+      try {
+        await expenseService.delete(id);
+        const updatedExpenses = await expenseService.getAll({ date: selectedDate });
+        setExpenses(updatedExpenses);
+      } catch (error) {
+        console.error('Error deleting expense:', error);
+      }
+    }
+  };
+
   const resetForm = () => {
     setFormData({
+      _id: '',
       date: format(new Date(), 'yyyy-MM-dd'),
       type: '',
       amount: '',
       description: '',
       notes: ''
     });
+    setSelectedExpense(null);
   };
+
+  const openModal = (expense?: Expense) => {
+  if (expense) {
+    setSelectedExpense(expense);
+    setFormData({
+      _id: expense._id,
+      date: format(new Date(), 'yyyy-MM-dd'), // Default to today's date
+      type: expense.type,
+      amount: expense.amount.toString(),
+      description: expense.description,
+      notes: expense.notes || ''
+    });
+    setShowEditModal(true);
+  } else {
+    resetForm();
+    setShowModal(true);
+  }
+};
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const expensesByType = expenses.reduce((acc, expense) => {
@@ -115,7 +156,7 @@ const Expenses: React.FC = () => {
             </div>
             <button
               className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
-              onClick={() => setShowModal(true)}
+              onClick={() => openModal()}
               disabled={isSubmitting}
             >
               <Plus size={16} />
@@ -205,6 +246,7 @@ const Expenses: React.FC = () => {
                   <th className="p-2 md:p-3 text-left">Description</th>
                   <th className="p-2 md:p-3 text-left">Amount</th>
                   <th className="p-2 md:p-3 text-left">Notes</th>
+                  <th className="p-2 md:p-3 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,6 +261,22 @@ const Expenses: React.FC = () => {
                       Rs.{expense.amount.toLocaleString()}
                     </td>
                     <td className="p-2 md:p-3">{expense.notes || '-'}</td>
+                    <td className="p-2 md:p-3">
+                      <div className="flex gap-2">
+                        <button
+                          className="btn btn-secondary text-sm"
+                          onClick={() => openModal(expense)}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="btn btn-danger text-sm"
+                          onClick={() => handleDelete(expense._id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -231,7 +289,7 @@ const Expenses: React.FC = () => {
             </div>
             <button
               className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base"
-              onClick={() => setShowModal(true)}
+              onClick={() => openModal()}
               disabled={isSubmitting}
             >
               <Plus size={16} />
@@ -241,7 +299,7 @@ const Expenses: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add Modal */}
       {showModal && (
         <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -322,6 +380,94 @@ const Expenses: React.FC = () => {
                 </button>
                 <button type="submit" className="btn btn-primary px-4 py-2 text-sm" disabled={isSubmitting}>
                   Add Expense
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
+          <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header flex justify-between items-center mb-4">
+              <h2 className="modal-title text-xl font-semibold text-gray-900">Edit Expense</h2>
+              <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowEditModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Date *</label>
+                  <input
+                    type="date"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Category *</label>
+                  <select
+                    className="form-select w-full p-2 border rounded text-sm"
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    required
+                  >
+                    <option value="">Select category</option>
+                    {expenseTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Amount (Rs.) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="form-input w-full p-2 border rounded text-sm"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Description *</label>
+                <input
+                  type="text"
+                  className="form-input w-full p-2 border rounded text-sm"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Brief description of the expense"
+                  required
+                />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  className="form-input w-full p-2 border rounded text-sm"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Any additional details..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button type="button" className="btn btn-outline px-4 py-2 text-sm" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary px-4 py-2 text-sm" disabled={isSubmitting}>
+                  Update Expense
                 </button>
               </div>
             </form>

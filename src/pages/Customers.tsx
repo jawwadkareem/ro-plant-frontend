@@ -303,13 +303,12 @@ const Customers: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Phone *</label>
+                <label className="form-label">Phone</label>
                 <input
                   type="tel"
                   className="form-input"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
                 />
               </div>
 
@@ -324,12 +323,12 @@ const Customers: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Address *</label>
+                <label className="form-label">Address</label>
                 <textarea
                   className="form-input form-textarea"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
+                  
                 />
               </div>
 
