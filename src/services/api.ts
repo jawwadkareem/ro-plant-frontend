@@ -1,10 +1,13 @@
+
+
 // import axios from 'axios';
 
 // // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-// const API_BASE_URL ='https://ro-plant-backend-73yj.vercel.app/api';
+// const API_BASE_URL = 'https://ro-plant-backend-73yj.vercel.app/api';
 
 // const api = axios.create({
 //   baseURL: API_BASE_URL,
+//   timeout: 10000,
 // });
 
 // // Add auth token to requests
@@ -70,12 +73,14 @@
 //   },
   
 //   create: async (sale: any) => {
-//     const response = await api.post('/sales', sale);
+//     const { _id, ...saleData } = sale; // Remove _id for create
+//     const response = await api.post('/sales', saleData);
 //     return response.data;
 //   },
   
 //   update: async (id: string, sale: any) => {
-//     const response = await api.put(`/sales/${id}`, sale);
+//     const { _id, ...saleData } = sale; // Remove _id for update
+//     const response = await api.put(`/sales/${id}`, saleData);
 //     return response.data;
 //   },
   
@@ -100,12 +105,14 @@
 //   },
   
 //   create: async (expense: any) => {
-//     const response = await api.post('/expenses', expense);
+//     const { _id, ...expenseData } = expense; // Remove _id for create
+//     const response = await api.post('/expenses', expenseData);
 //     return response.data;
 //   },
   
 //   update: async (id: string, expense: any) => {
-//     const response = await api.put(`/expenses/${id}`, expense);
+//     const { _id, ...expenseData } = expense; // Remove _id for update
+//     const response = await api.put(`/expenses/${id}`, expenseData);
 //     return response.data;
 //   },
   
@@ -123,12 +130,14 @@
 //   },
   
 //   create: async (creditor: any) => {
-//     const response = await api.post('/creditors', creditor);
+//     const { _id, ...creditorData } = creditor; // Remove _id for create
+//     const response = await api.post('/creditors', creditorData);
 //     return response.data;
 //   },
   
 //   update: async (id: string, creditor: any) => {
-//     const response = await api.put(`/creditors/${id}`, creditor);
+//     const { _id, ...creditorData } = creditor; // Remove _id for update
+//     const response = await api.put(`/creditors/${id}`, creditorData);
 //     return response.data;
 //   },
   
@@ -178,7 +187,6 @@
 // };
 
 // export default api;
-
 import axios from 'axios';
 
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -297,36 +305,6 @@ export const expenseService = {
   
   delete: async (id: string) => {
     const response = await api.delete(`/expenses/${id}`);
-    return response.data;
-  }
-};
-
-// Creditors Service
-export const creditorService = {
-  getAll: async () => {
-    const response = await api.get('/creditors');
-    return response.data;
-  },
-  
-  create: async (creditor: any) => {
-    const { _id, ...creditorData } = creditor; // Remove _id for create
-    const response = await api.post('/creditors', creditorData);
-    return response.data;
-  },
-  
-  update: async (id: string, creditor: any) => {
-    const { _id, ...creditorData } = creditor; // Remove _id for update
-    const response = await api.put(`/creditors/${id}`, creditorData);
-    return response.data;
-  },
-  
-  markPaid: async (id: string) => {
-    const response = await api.patch(`/creditors/${id}/pay`);
-    return response.data;
-  },
-  
-  delete: async (id: string) => {
-    const response = await api.delete(`/creditors/${id}`);
     return response.data;
   }
 };

@@ -1,3 +1,4 @@
+
 // import React, { useState, useEffect, useRef } from 'react';
 // import { Plus, Calendar, DollarSign, Package, TrendingUp, Edit, Trash2 } from 'lucide-react';
 // import { salesService, customerService } from '../services/api';
@@ -30,7 +31,6 @@
 //   const [showEditModal, setShowEditModal] = useState(false);
 //   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 //   const [formData, setFormData] = useState({
-//     _id: '',
 //     date: format(new Date(), 'yyyy-MM-dd'),
 //     units: '',
 //     unitRate: '',
@@ -103,16 +103,17 @@
 //       }
 
 //       const saleData = {
-//         ...formData,
+//         date: formData.date,
 //         units: parseInt(formData.units),
 //         unitRate: parseFloat(formData.unitRate),
 //         counterCash: parseFloat(formData.counterCash),
 //         totalBill: parseInt(formData.units) * parseFloat(formData.unitRate),
 //         customerId: customerId || undefined,
+//         notes: formData.notes
 //       };
 
-//       if (formData._id) {
-//         const updatedSale = await salesService.update(formData._id, saleData);
+//       if (selectedSale) {
+//         const updatedSale = await salesService.update(selectedSale._id, saleData);
 //         setSales(sales.map(s => s._id === updatedSale._id ? updatedSale : s));
 //       } else {
 //         const newSale = await salesService.create(saleData);
@@ -146,7 +147,6 @@
 
 //   const resetForm = () => {
 //     setFormData({
-//       _id: '',
 //       date: format(new Date(), 'yyyy-MM-dd'),
 //       units: '',
 //       unitRate: '',
@@ -163,8 +163,7 @@
 //     if (sale) {
 //       setSelectedSale(sale);
 //       setFormData({
-//         _id: sale._id,
-//         date: format(new Date(), 'yyyy-MM-dd'), // Default to today's date
+//         date: format(new Date(sale.date), 'yyyy-MM-dd'),
 //         units: sale.units.toString(),
 //         unitRate: sale.unitRate.toString(),
 //         counterCash: sale.counterCash.toString(),
@@ -592,7 +591,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Calendar, DollarSign, Package, TrendingUp, Edit, Trash2 } from 'lucide-react';
 import { salesService, customerService } from '../services/api';
-import { format } from 'date-fns';
 
 interface Sale {
   _id: string;
@@ -605,11 +603,14 @@ interface Sale {
   customerId?: string;
   notes?: string;
   createdAt: string;
+  amountLeft?: number;
+  isCreditor?: boolean;
 }
 
 interface Customer {
   _id: string;
   name: string;
+  unitRate?: number;
 }
 
 const Sales: React.FC = () => {
@@ -619,39 +620,48 @@ const Sales: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [showCashOnlyModal, setShowCashOnlyModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [formData, setFormData] = useState({
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: new Date().toISOString().split('T')[0],
     units: '',
     unitRate: '',
     counterCash: '',
     customerName: '',
     customerId: '',
-    notes: ''
+    notes: '',
+    isCreditor: false,
+    amountLeft: 0
   });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const customerInputRef = useRef<HTMLInputElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [avgSalesPerDay, setAvgSalesPerDay] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [salesData, customersData] = await Promise.all([
-          salesService.getAll({ date: selectedDate }),
-          customerService.getAll()
-        ]);
-        setSales(salesData);
-        setCustomers(customersData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
   }, [selectedDate]);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [salesRes, customersRes] = await Promise.all([
+        salesService.getAll({ date: selectedDate }),
+        customerService.getAll()
+      ]);
+      setSales(salesRes);
+      setCustomers(customersRes);
+
+      const uniqueDates = [...new Set(salesRes.map((s: Sale) => s.date))];
+      const totalSales = salesRes.reduce((sum: number, sale: Sale) => sum + sale.totalBill, 0);
+      setAvgSalesPerDay(uniqueDates.length > 0 ? totalSales / uniqueDates.length : 0);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCustomerInput = (value: string) => {
     setFormData({ ...formData, customerName: value, customerId: '' });
@@ -668,7 +678,12 @@ const Sales: React.FC = () => {
   };
 
   const handleSelectCustomer = (customer: Customer) => {
-    setFormData({ ...formData, customerName: customer.name, customerId: customer._id });
+    setFormData((prev) => ({
+      ...prev,
+      customerName: customer.name,
+      customerId: customer._id,
+      unitRate: customer.unitRate?.toString() || prev.unitRate
+    }));
     setShowSuggestions(false);
   };
 
@@ -684,7 +699,10 @@ const Sales: React.FC = () => {
           (c) => c.name.toLowerCase() === formData.customerName.toLowerCase()
         );
         if (!existingCustomer) {
-          const newCustomer = await customerService.create({ name: formData.customerName });
+          const newCustomer = await customerService.create({
+            name: formData.customerName,
+            unitRate: formData.unitRate ? parseFloat(formData.unitRate) : undefined
+          });
           customerId = newCustomer._id;
           setCustomers([...customers, newCustomer]);
         } else {
@@ -692,32 +710,73 @@ const Sales: React.FC = () => {
         }
       }
 
+      const units = parseInt(formData.units) || 0;
+      const unitRate = parseFloat(formData.unitRate) || 0;
+      const totalBill = units * unitRate;
+      const counterCash = parseFloat(formData.counterCash) || 0;
+      const amountLeft = formData.isCreditor ? totalBill - counterCash : 0;
+
       const saleData = {
         date: formData.date,
-        units: parseInt(formData.units),
-        unitRate: parseFloat(formData.unitRate),
-        counterCash: parseFloat(formData.counterCash),
-        totalBill: parseInt(formData.units) * parseFloat(formData.unitRate),
+        units,
+        unitRate,
+        totalBill,
+        counterCash,
         customerId: customerId || undefined,
-        notes: formData.notes
+        customerName: customerId ? undefined : formData.customerName,
+        notes: formData.notes,
+        isCreditor: formData.isCreditor,
+        amountLeft
       };
 
+      let response;
       if (selectedSale) {
-        const updatedSale = await salesService.update(selectedSale._id, saleData);
-        setSales(sales.map(s => s._id === updatedSale._id ? updatedSale : s));
+        response = await salesService.update(selectedSale._id, saleData);
+        setSales(sales.map(s => s._id === response._id ? response : s));
       } else {
-        const newSale = await salesService.create(saleData);
-        setSales((prevSales) => [...prevSales, newSale]);
+        response = await salesService.create(saleData);
+        setSales([...sales, response]);
       }
-
-      const updatedSales = await salesService.getAll({ date: selectedDate });
-      setSales(updatedSales);
 
       setShowModal(false);
       setShowEditModal(false);
+      setShowCashOnlyModal(false);
       resetForm();
+      fetchData(); // Refresh data
     } catch (error) {
       console.error('Error saving sale:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCashOnlySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const totalBill = parseFloat(formData.counterCash) || 0;
+      const saleData = {
+        date: formData.date,
+        units: 0,
+        unitRate: 0,
+        totalBill,
+        counterCash: totalBill,
+        customerId: undefined,
+        customerName: undefined,
+        notes: formData.notes,
+        isCreditor: false,
+        amountLeft: 0
+      };
+
+      const response = await salesService.create(saleData);
+      setSales([...sales, response]);
+      setShowCashOnlyModal(false);
+      resetForm();
+      fetchData(); // Refresh data
+    } catch (error) {
+      console.error('Error saving cash-only sale:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -727,8 +786,7 @@ const Sales: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this sale?')) {
       try {
         await salesService.delete(id);
-        const updatedSales = await salesService.getAll({ date: selectedDate });
-        setSales(updatedSales);
+        setSales(sales.filter(s => s._id !== id));
       } catch (error) {
         console.error('Error deleting sale:', error);
       }
@@ -737,31 +795,38 @@ const Sales: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: new Date().toISOString().split('T')[0],
       units: '',
       unitRate: '',
       counterCash: '',
       customerName: '',
       customerId: '',
-      notes: ''
+      notes: '',
+      isCreditor: false,
+      amountLeft: 0
     });
     setShowSuggestions(false);
     setSelectedSale(null);
   };
 
-  const openModal = (sale?: Sale) => {
+  const openModal = (sale?: Sale, cashOnly?: boolean) => {
     if (sale) {
       setSelectedSale(sale);
       setFormData({
-        date: format(new Date(sale.date), 'yyyy-MM-dd'),
+        date: new Date(sale.date).toISOString().split('T')[0],
         units: sale.units.toString(),
         unitRate: sale.unitRate.toString(),
         counterCash: sale.counterCash.toString(),
         customerName: sale.customerName || '',
         customerId: sale.customerId || '',
-        notes: sale.notes || ''
+        notes: sale.notes || '',
+        isCreditor: sale.isCreditor || false,
+        amountLeft: sale.amountLeft || 0
       });
       setShowEditModal(true);
+    } else if (cashOnly) {
+      resetForm();
+      setShowCashOnlyModal(true);
     } else {
       resetForm();
       setShowModal(true);
@@ -789,20 +854,29 @@ const Sales: React.FC = () => {
               <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-900">Sales Management</h1>
               <p className="page-subtitle text-sm md:text-base text-gray-600">Track daily sales and revenue</p>
             </div>
-            <button
-              className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
-              onClick={() => openModal()}
-              disabled={isSubmitting}
-            >
-              <Plus size={16} />
-              Record Sale
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
+                onClick={() => openModal()}
+                disabled={isSubmitting}
+              >
+                <Plus size={16} />
+                Record Sale
+              </button>
+              <button
+                className="btn btn-secondary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
+                onClick={() => openModal(undefined, true)}
+                disabled={isSubmitting}
+              >
+                <DollarSign size={16} />
+                Cash Only
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Date Filter and Summary */}
         <div className="card bg-white p-4 md:p-6 rounded-lg shadow mb-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
             <div className="flex items-center gap-3">
@@ -819,7 +893,7 @@ const Sales: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="stat-card p-4 rounded-lg shadow">
               <div className="stat-icon flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
                 <DollarSign size={20} />
@@ -859,10 +933,19 @@ const Sales: React.FC = () => {
               </div>
               <div className="stat-label text-sm md:text-base text-gray-600">Avg. Rate</div>
             </div>
+            
+            <div className="stat-card p-4 rounded-lg shadow">
+              <div className="stat-icon flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
+                <TrendingUp size={20} />
+              </div>
+              <div className="stat-value text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                Rs.{avgSalesPerDay.toFixed(2)}
+              </div>
+              <div className="stat-label text-sm md:text-base text-gray-600">Avg Sales/Day</div>
+            </div>
           </div>
         </div>
 
-        {/* Sales Table */}
         {sales.length > 0 ? (
           <div className="table-container overflow-x-auto">
             <table className="table w-full text-sm md:text-base">
@@ -882,7 +965,7 @@ const Sales: React.FC = () => {
               <tbody>
                 {sales.map((sale) => (
                   <tr key={sale._id} className="border-b">
-                    <td className="p-2 md:p-3">{format(new Date(sale.createdAt), 'HH:mm')}</td>
+                    <td className="p-2 md:p-3">{new Date(sale.createdAt).toLocaleTimeString()}</td>
                     <td className="p-2 md:p-3">{sale.customerName || '-'}</td>
                     <td className="p-2 md:p-3">{sale.units}</td>
                     <td className="p-2 md:p-3">Rs.{sale.unitRate}</td>
@@ -891,8 +974,8 @@ const Sales: React.FC = () => {
                     </td>
                     <td className="p-2 md:p-3">Rs.{sale.counterCash.toLocaleString()}</td>
                     <td className="p-2 md:p-3">
-                      <span className={`badge p-1 text-xs md:text-sm ${sale.totalBill - sale.counterCash === 0 ? 'badge-success' : sale.totalBill - sale.counterCash > 0 ? 'badge-warning' : 'badge-danger'}`}>
-                        Rs.{(sale.totalBill - sale.counterCash).toLocaleString()}
+                      <span className={`badge p-1 text-xs md:text-sm ${sale.amountLeft === 0 ? 'badge-success' : 'badge-warning'}`}>
+                        Rs.{sale.amountLeft.toLocaleString()}
                       </span>
                     </td>
                     <td className="p-2 md:p-3">{sale.notes || '-'}</td>
@@ -920,7 +1003,7 @@ const Sales: React.FC = () => {
         ) : (
           <div className="card bg-white p-6 rounded-lg shadow text-center">
             <div className="text-gray-500 mb-4">
-              No sales recorded for {format(new Date(selectedDate), 'MMMM d, yyyy')}
+              No sales recorded for {new Date(selectedDate).toLocaleDateString()}
             </div>
             <button
               className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base"
@@ -991,8 +1074,12 @@ const Sales: React.FC = () => {
                     type="number"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.units}
-                    onChange={(e) => setFormData({ ...formData, units: e.target.value })}
-                    min="1"
+                    onChange={(e) => {
+                      const units = parseInt(e.target.value) || 0;
+                      const unitRate = parseFloat(formData.unitRate) || 0;
+                      setFormData({ ...formData, units: e.target.value, totalBill: (units * unitRate).toString() });
+                    }}
+                    min="0"
                     required
                   />
                 </div>
@@ -1004,7 +1091,11 @@ const Sales: React.FC = () => {
                     step="0.01"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.unitRate}
-                    onChange={(e) => setFormData({ ...formData, unitRate: e.target.value })}
+                    onChange={(e) => {
+                      const unitRate = parseFloat(e.target.value) || 0;
+                      const units = parseInt(formData.units) || 0;
+                      setFormData({ ...formData, unitRate: e.target.value, totalBill: (units * unitRate).toString() });
+                    }}
                     min="0"
                     required
                   />
@@ -1016,6 +1107,11 @@ const Sales: React.FC = () => {
                 <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
                   Rs.{(parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0')).toLocaleString()}
                 </div>
+                {formData.amountLeft > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Amount Left: Rs.{formData.amountLeft.toLocaleString()}
+                  </div>
+                )}
               </div>
 
               <div className="form-group mt-4">
@@ -1025,10 +1121,31 @@ const Sales: React.FC = () => {
                   step="0.01"
                   className="form-input w-full p-2 border rounded text-sm"
                   value={formData.counterCash}
-                  onChange={(e) => setFormData({ ...formData, counterCash: e.target.value })}
+                  onChange={(e) => {
+                    const cash = parseFloat(e.target.value) || 0;
+                    const totalBill = parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0');
+                    setFormData((prev) => ({
+                      ...prev,
+                      counterCash: e.target.value,
+                      amountLeft: prev.isCreditor ? Math.max(0, totalBill - cash) : 0,
+                      isCreditor: prev.isCreditor || cash < totalBill
+                    }));
+                  }}
                   min="0"
                   required
                 />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.isCreditor}
+                    onChange={(e) => setFormData({ ...formData, isCreditor: e.target.checked })}
+                    className="mr-2"
+                  />
+                  Creditor Sale (Pay Later)
+                </label>
               </div>
 
               <div className="form-group mt-4">
@@ -1111,8 +1228,12 @@ const Sales: React.FC = () => {
                     type="number"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.units}
-                    onChange={(e) => setFormData({ ...formData, units: e.target.value })}
-                    min="1"
+                    onChange={(e) => {
+                      const units = parseInt(e.target.value) || 0;
+                      const unitRate = parseFloat(formData.unitRate) || 0;
+                      setFormData({ ...formData, units: e.target.value, totalBill: (units * unitRate).toString() });
+                    }}
+                    min="0"
                     required
                   />
                 </div>
@@ -1124,7 +1245,11 @@ const Sales: React.FC = () => {
                     step="0.01"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.unitRate}
-                    onChange={(e) => setFormData({ ...formData, unitRate: e.target.value })}
+                    onChange={(e) => {
+                      const unitRate = parseFloat(e.target.value) || 0;
+                      const units = parseInt(formData.units) || 0;
+                      setFormData({ ...formData, unitRate: e.target.value, totalBill: (units * unitRate).toString() });
+                    }}
                     min="0"
                     required
                   />
@@ -1136,6 +1261,11 @@ const Sales: React.FC = () => {
                 <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
                   Rs.{(parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0')).toLocaleString()}
                 </div>
+                {formData.amountLeft > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Amount Left: Rs.{formData.amountLeft.toLocaleString()}
+                  </div>
+                )}
               </div>
 
               <div className="form-group mt-4">
@@ -1145,10 +1275,31 @@ const Sales: React.FC = () => {
                   step="0.01"
                   className="form-input w-full p-2 border rounded text-sm"
                   value={formData.counterCash}
-                  onChange={(e) => setFormData({ ...formData, counterCash: e.target.value })}
+                  onChange={(e) => {
+                    const cash = parseFloat(e.target.value) || 0;
+                    const totalBill = parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0');
+                    setFormData((prev) => ({
+                      ...prev,
+                      counterCash: e.target.value,
+                      amountLeft: prev.isCreditor ? Math.max(0, totalBill - cash) : 0,
+                      isCreditor: prev.isCreditor || cash < totalBill
+                    }));
+                  }}
                   min="0"
                   required
                 />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.isCreditor}
+                    onChange={(e) => setFormData({ ...formData, isCreditor: e.target.checked })}
+                    className="mr-2"
+                  />
+                  Creditor Sale (Pay Later)
+                </label>
               </div>
 
               <div className="form-group mt-4">
@@ -1167,6 +1318,67 @@ const Sales: React.FC = () => {
                 </button>
                 <button type="submit" className="btn btn-primary px-4 py-2 text-sm" disabled={isSubmitting}>
                   Update Sale
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Only Modal */}
+      {showCashOnlyModal && (
+        <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCashOnlyModal(false)}>
+          <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header flex justify-between items-center mb-4">
+              <h2 className="modal-title text-xl font-semibold text-gray-900">Record Cash Only Sale</h2>
+              <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowCashOnlyModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleCashOnlySubmit}>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Date *</label>
+                  <input
+                    type="date"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label block text-sm font-medium text-gray-700">Total Bill (Rs.) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.counterCash}
+                    onChange={(e) => setFormData({ ...formData, counterCash: e.target.value })}
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div className="form-group mt-4">
+                  <label className="form-label block text-sm font-medium text-gray-700">Notes</label>
+                  <textarea
+                    className="form-input w-full p-2 border rounded text-sm"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Any additional notes..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button type="button" className="btn btn-outline px-4 py-2 text-sm" onClick={() => setShowCashOnlyModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary px-4 py-2 text-sm" disabled={isSubmitting}>
+                  Record Cash
                 </button>
               </div>
             </form>
