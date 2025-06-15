@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
               <h1 className="page-title text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="page-subtitle text-sm md:text-base text-gray-600">Overview of your business performance</p>
+              <p className="page-subtitle text-sm md:text-base text-gray-600">Overview of your business performanceeeee</p>
             </div>
           </div>
         </div>
