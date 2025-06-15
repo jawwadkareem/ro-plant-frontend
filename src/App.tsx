@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import Sales from './pages/Sales';
 import Expenses from './pages/Expenses';
-import Creditors from './pages/Creditors';
+// import Creditors from './pages/Creditors';
 import Reports from './pages/Reports';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -25,7 +25,7 @@ function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="sales" element={<Sales />} />
           <Route path="expenses" element={<Expenses />} />
-          <Route path="creditors" element={<Creditors />} />
+          {/* <Route path="creditors" element={<Creditors />} /> */}
           <Route path="reports" element={<Reports />} />
         </Route>
       </Routes>
