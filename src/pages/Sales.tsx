@@ -597,7 +597,7 @@ interface Sale {
   date: string;
   units: number;
   unitRate: number;
-  totalBill: number;
+  totalBill: number | undefined;
   counterCash: number;
   customerName?: string;
   customerId?: string;
@@ -654,7 +654,7 @@ const Sales: React.FC = () => {
       setCustomers(customersRes);
 
       const uniqueDates = [...new Set(salesRes.map((s: Sale) => s.date))];
-      const totalSales = salesRes.reduce((sum: number, sale: Sale) => sum + sale.totalBill, 0);
+      const totalSales = salesRes.reduce((sum: number, sale: Sale) => sum + (sale.totalBill || 0), 0);
       setAvgSalesPerDay(uniqueDates.length > 0 ? totalSales / uniqueDates.length : 0);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -814,9 +814,9 @@ const Sales: React.FC = () => {
       setSelectedSale(sale);
       setFormData({
         date: new Date(sale.date).toISOString().split('T')[0],
-        units: sale.units.toString(),
-        unitRate: sale.unitRate.toString(),
-        counterCash: sale.counterCash.toString(),
+        units: sale.units?.toString() || '',
+        unitRate: sale.unitRate?.toString() || '',
+        counterCash: sale.counterCash?.toString() || '',
         customerName: sale.customerName || '',
         customerId: sale.customerId || '',
         notes: sale.notes || '',
@@ -833,9 +833,9 @@ const Sales: React.FC = () => {
     }
   };
 
-  const totalSales = sales.reduce((sum, sale) => sum + sale.totalBill, 0);
-  const totalCash = sales.reduce((sum, sale) => sum + sale.counterCash, 0);
-  const totalUnits = sales.reduce((sum, sale) => sum + sale.units, 0);
+  const totalSales = sales.reduce((sum, sale) => sum + (sale.totalBill || 0), 0);
+  const totalCash = sales.reduce((sum, sale) => sum + (sale.counterCash || 0), 0);
+  const totalUnits = sales.reduce((sum, sale) => sum + (sale.units || 0), 0);
 
   if (isLoading) {
     return (
@@ -967,15 +967,15 @@ const Sales: React.FC = () => {
                   <tr key={sale._id} className="border-b">
                     <td className="p-2 md:p-3">{new Date(sale.createdAt).toLocaleTimeString()}</td>
                     <td className="p-2 md:p-3">{sale.customerName || '-'}</td>
-                    <td className="p-2 md:p-3">{sale.units}</td>
-                    <td className="p-2 md:p-3">Rs.{sale.unitRate}</td>
+                    <td className="p-2 md:p-3">{sale.units || 0}</td>
+                    <td className="p-2 md:p-3">Rs.{(sale.unitRate || 0).toLocaleString()}</td>
                     <td className="p-2 md:p-3 font-semibold text-green-600">
-                      Rs.{sale.totalBill.toLocaleString()}
+                      Rs.{(sale.totalBill || 0).toLocaleString()}
                     </td>
-                    <td className="p-2 md:p-3">Rs.{sale.counterCash.toLocaleString()}</td>
+                    <td className="p-2 md:p-3">Rs.{(sale.counterCash || 0).toLocaleString()}</td>
                     <td className="p-2 md:p-3">
                       <span className={`badge p-1 text-xs md:text-sm ${sale.amountLeft === 0 ? 'badge-success' : 'badge-warning'}`}>
-                        Rs.{sale.amountLeft.toLocaleString()}
+                        Rs.{(sale.amountLeft || 0).toLocaleString()}
                       </span>
                     </td>
                     <td className="p-2 md:p-3">{sale.notes || '-'}</td>

@@ -7,7 +7,7 @@ import {
   Users, 
   ShoppingCart, 
   Receipt, 
-  CreditCard, 
+  // CreditCard, 
   FileText, 
   LogOut,
   Droplets
@@ -22,7 +22,7 @@ const Layout: React.FC = () => {
     { name: 'Customers', href: '/customers', icon: Users },
     { name: 'Sales', href: '/sales', icon: ShoppingCart },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
-    { name: 'Creditors', href: '/creditors', icon: CreditCard },
+    // { name: 'Creditors', href: '/creditors', icon: CreditCard },
     { name: 'Reports', href: '/reports', icon: FileText },
   ];
 
