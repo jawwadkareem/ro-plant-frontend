@@ -481,6 +481,7 @@ const Customers: React.FC = () => {
   });
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false); // Separate loading state for history
 
   useEffect(() => {
     fetchCustomers();
@@ -500,14 +501,15 @@ const Customers: React.FC = () => {
 
   const fetchHistory = async (customerId: string) => {
     try {
-      setIsLoading(true); // Show loading state while fetching history
+      setIsHistoryLoading(true); // Start loading for history
       const data = await customerService.getHistory(customerId);
-      setHistoryData(data);
+      setHistoryData(data || []); // Ensure data is an array even if empty
       setShowHistoryModal(true);
     } catch (error) {
       console.error('Error fetching history:', error);
+      setHistoryData([]); // Reset to empty array on error
     } finally {
-      setIsLoading(false);
+      setIsHistoryLoading(false); // Stop loading
     }
   };
 
@@ -835,7 +837,7 @@ const Customers: React.FC = () => {
               </button>
             </div>
 
-            {isLoading ? (
+            {isHistoryLoading ? (
               <div className="flex justify-center items-center py-6">
                 <div className="spinner"></div>
               </div>
