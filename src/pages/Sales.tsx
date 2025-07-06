@@ -697,6 +697,19 @@ const Sales = () => {
     setCustomerOutstanding(totalOutstanding);
   };
 
+  const calculateTotalBill = () => {
+    const units = parseInt(formData.units) || 0;
+    const unitRate = parseFloat(formData.unitRate) || 0;
+    const currentBill = units * unitRate;
+    return currentBill + customerOutstanding;
+  };
+
+  const calculateAmountLeft = () => {
+    const totalBill = calculateTotalBill();
+    const counterCash = parseFloat(formData.counterCash) || 0;
+    return Math.max(0, totalBill - counterCash);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -724,7 +737,7 @@ const Sales = () => {
       const unitRate = parseFloat(formData.unitRate) || 0;
       const totalBill = units * unitRate;
       const counterCash = parseFloat(formData.counterCash) || 0;
-      const amountLeft = formData.isCreditor ? Math.max(0, totalBill - counterCash) : 0;
+      const amountLeft = formData.isCreditor ? calculateAmountLeft() : 0;
 
       const saleData = {
         date: formData.date,
@@ -1099,7 +1112,6 @@ const Sales = () => {
                       setFormData({
                         ...formData,
                         units: e.target.value,
-                        totalBill: (parseInt(e.target.value) || 0) * (parseFloat(formData.unitRate) || 0),
                       })
                     }
                     min="0"
@@ -1118,7 +1130,6 @@ const Sales = () => {
                       setFormData({
                         ...formData,
                         unitRate: e.target.value,
-                        totalBill: (parseInt(formData.units) || 0) * (parseFloat(e.target.value) || 0),
                       })
                     }
                     min="0"
@@ -1128,9 +1139,16 @@ const Sales = () => {
               </div>
 
               <div className="form-group mt-4">
-                <label className="form-label block text-sm font-medium text-gray-700">Total Bill</label>
+                <label className="form-label block text-sm font-medium text-gray-700">Current Bill</label>
                 <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
-                  Rs.{(parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0).toLocaleString()}
+                  Rs.{((parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0)).toLocaleString()}
+                </div>
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Total Bill (Including Outstanding)</label>
+                <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
+                  Rs.{calculateTotalBill().toLocaleString()}
                 </div>
               </div>
 
@@ -1143,24 +1161,22 @@ const Sales = () => {
                   value={formData.counterCash}
                   onChange={(e) => {
                     const newCounterCash = e.target.value;
-                    setFormData((prev) => {
-                      const units = parseInt(prev.units) || 0;
-                      const unitRate = parseFloat(prev.unitRate) || 0;
-                      const totalBill = units * unitRate;
-                      const isCreditor = parseFloat(newCounterCash) < totalBill;
-                      const newAmountLeft = isCreditor ? Math.max(0, totalBill - parseFloat(newCounterCash)) : 0;
-                      updateOutstandingAmount(prev.customerName, newAmountLeft);
-                      return {
-                        ...prev,
-                        counterCash: newCounterCash,
-                        isCreditor,
-                        amountLeft: newAmountLeft,
-                      };
-                    });
+                    setFormData((prev) => ({
+                      ...prev,
+                      counterCash: newCounterCash,
+                      isCreditor: parseFloat(newCounterCash) < calculateTotalBill(),
+                    }));
                   }}
                   min="0"
                   required
                 />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Amount Left</label>
+                <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-red-600">
+                  Rs.{calculateAmountLeft().toLocaleString()}
+                </div>
               </div>
 
               <div className="form-group mt-4">
@@ -1270,7 +1286,6 @@ const Sales = () => {
                       setFormData({
                         ...formData,
                         units: e.target.value,
-                        totalBill: (parseInt(e.target.value) || 0) * (parseFloat(formData.unitRate) || 0),
                       })
                     }
                     min="0"
@@ -1289,7 +1304,6 @@ const Sales = () => {
                       setFormData({
                         ...formData,
                         unitRate: e.target.value,
-                        totalBill: (parseInt(formData.units) || 0) * (parseFloat(e.target.value) || 0),
                       })
                     }
                     min="0"
@@ -1299,9 +1313,16 @@ const Sales = () => {
               </div>
 
               <div className="form-group mt-4">
-                <label className="form-label block text-sm font-medium text-gray-700">Total Bill</label>
+                <label className="form-label block text-sm font-medium text-gray-700">Current Bill</label>
                 <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
-                  Rs.{(parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0).toLocaleString()}
+                  Rs.{((parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0)).toLocaleString()}
+                </div>
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Total Bill (Including Outstanding)</label>
+                <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
+                  Rs.{calculateTotalBill().toLocaleString()}
                 </div>
               </div>
 
@@ -1314,24 +1335,22 @@ const Sales = () => {
                   value={formData.counterCash}
                   onChange={(e) => {
                     const newCounterCash = e.target.value;
-                    setFormData((prev) => {
-                      const units = parseInt(prev.units) || 0;
-                      const unitRate = parseFloat(prev.unitRate) || 0;
-                      const totalBill = units * unitRate;
-                      const isCreditor = parseFloat(newCounterCash) < totalBill;
-                      const newAmountLeft = isCreditor ? Math.max(0, totalBill - parseFloat(newCounterCash)) : 0;
-                      updateOutstandingAmount(prev.customerName, newAmountLeft);
-                      return {
-                        ...prev,
-                        counterCash: newCounterCash,
-                        isCreditor,
-                        amountLeft: newAmountLeft,
-                      };
-                    });
+                    setFormData((prev) => ({
+                      ...prev,
+                      counterCash: newCounterCash,
+                      isCreditor: parseFloat(newCounterCash) < calculateTotalBill(),
+                    }));
                   }}
                   min="0"
                   required
                 />
+              </div>
+
+              <div className="form-group mt-4">
+                <label className="form-label block text-sm font-medium text-gray-700">Amount Left</label>
+                <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-red-600">
+                  Rs.{calculateAmountLeft().toLocaleString()}
+                </div>
               </div>
 
               <div className="form-group mt-4">
