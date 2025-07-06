@@ -597,7 +597,7 @@ interface Sale {
   date: string;
   units: number;
   unitRate: number;
-  totalBill: number | undefined;
+  totalBill: number;
   counterCash: number;
   customerName?: string;
   customerId?: string;
@@ -613,7 +613,7 @@ interface Customer {
   unitRate?: number;
 }
 
-const Sales: React.FC = () => {
+const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -631,7 +631,6 @@ const Sales: React.FC = () => {
     customerId: '',
     notes: '',
     isCreditor: false,
-    amountLeft: 0
   });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -648,13 +647,13 @@ const Sales: React.FC = () => {
       setIsLoading(true);
       const [salesRes, customersRes] = await Promise.all([
         salesService.getAll({ date: selectedDate }),
-        customerService.getAll()
+        customerService.getAll(),
       ]);
       setSales(salesRes);
       setCustomers(customersRes);
 
-      const uniqueDates = [...new Set(salesRes.map((s: Sale) => s.date))];
-      const totalSales = salesRes.reduce((sum: number, sale: Sale) => sum + (sale.totalBill || 0), 0);
+      const uniqueDates = [...new Set(salesRes.map((s) => s.date.toISOString().split('T')[0]))];
+      const totalSales = salesRes.reduce((sum, sale) => sum + (sale.totalBill || 0), 0);
       setAvgSalesPerDay(uniqueDates.length > 0 ? totalSales / uniqueDates.length : 0);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -663,8 +662,8 @@ const Sales: React.FC = () => {
     }
   };
 
-  const handleCustomerInput = (value: string) => {
-    setFormData({ ...formData, customerName: value, customerId: '' });
+  const handleCustomerInput = (value) => {
+    setFormData((prev) => ({ ...prev, customerName: value, customerId: '' }));
     if (value.trim()) {
       const filtered = customers.filter((customer) =>
         customer.name.toLowerCase().includes(value.toLowerCase())
@@ -677,17 +676,17 @@ const Sales: React.FC = () => {
     }
   };
 
-  const handleSelectCustomer = (customer: Customer) => {
+  const handleSelectCustomer = (customer) => {
     setFormData((prev) => ({
       ...prev,
       customerName: customer.name,
       customerId: customer._id,
-      unitRate: customer.unitRate?.toString() || prev.unitRate
+      unitRate: customer.unitRate?.toString() || prev.unitRate,
     }));
     setShowSuggestions(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -701,10 +700,10 @@ const Sales: React.FC = () => {
         if (!existingCustomer) {
           const newCustomer = await customerService.create({
             name: formData.customerName,
-            unitRate: formData.unitRate ? parseFloat(formData.unitRate) : undefined
+            unitRate: formData.unitRate ? parseFloat(formData.unitRate) : undefined,
           });
           customerId = newCustomer._id;
-          setCustomers([...customers, newCustomer]);
+          setCustomers((prev) => [...prev, newCustomer]);
         } else {
           customerId = existingCustomer._id;
         }
@@ -714,7 +713,7 @@ const Sales: React.FC = () => {
       const unitRate = parseFloat(formData.unitRate) || 0;
       const totalBill = units * unitRate;
       const counterCash = parseFloat(formData.counterCash) || 0;
-      const amountLeft = formData.isCreditor ? totalBill - counterCash : 0;
+      const amountLeft = formData.isCreditor ? Math.max(0, totalBill - counterCash) : 0;
 
       const saleData = {
         date: formData.date,
@@ -726,23 +725,23 @@ const Sales: React.FC = () => {
         customerName: customerId ? undefined : formData.customerName,
         notes: formData.notes,
         isCreditor: formData.isCreditor,
-        amountLeft
+        amountLeft,
       };
 
       let response;
       if (selectedSale) {
         response = await salesService.update(selectedSale._id, saleData);
-        setSales(sales.map(s => s._id === response._id ? response : s));
+        setSales((prev) => prev.map((s) => (s._id === response._id ? response : s)));
       } else {
         response = await salesService.create(saleData);
-        setSales([...sales, response]);
+        setSales((prev) => [...prev, response]);
       }
 
       setShowModal(false);
       setShowEditModal(false);
       setShowCashOnlyModal(false);
       resetForm();
-      fetchData(); // Refresh data
+      fetchData();
     } catch (error) {
       console.error('Error saving sale:', error);
     } finally {
@@ -750,7 +749,7 @@ const Sales: React.FC = () => {
     }
   };
 
-  const handleCashOnlySubmit = async (e: React.FormEvent) => {
+  const handleCashOnlySubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -767,14 +766,14 @@ const Sales: React.FC = () => {
         customerName: undefined,
         notes: formData.notes,
         isCreditor: false,
-        amountLeft: 0
+        amountLeft: 0,
       };
 
       const response = await salesService.create(saleData);
-      setSales([...sales, response]);
+      setSales((prev) => [...prev, response]);
       setShowCashOnlyModal(false);
       resetForm();
-      fetchData(); // Refresh data
+      fetchData();
     } catch (error) {
       console.error('Error saving cash-only sale:', error);
     } finally {
@@ -782,11 +781,11 @@ const Sales: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this sale?')) {
       try {
         await salesService.delete(id);
-        setSales(sales.filter(s => s._id !== id));
+        setSales((prev) => prev.filter((s) => s._id !== id));
       } catch (error) {
         console.error('Error deleting sale:', error);
       }
@@ -803,25 +802,23 @@ const Sales: React.FC = () => {
       customerId: '',
       notes: '',
       isCreditor: false,
-      amountLeft: 0
     });
     setShowSuggestions(false);
     setSelectedSale(null);
   };
 
-  const openModal = (sale?: Sale, cashOnly?: boolean) => {
+  const openModal = (sale, cashOnly = false) => {
     if (sale) {
       setSelectedSale(sale);
       setFormData({
         date: new Date(sale.date).toISOString().split('T')[0],
-        units: sale.units?.toString() || '',
-        unitRate: sale.unitRate?.toString() || '',
-        counterCash: sale.counterCash?.toString() || '',
+        units: sale.units.toString(),
+        unitRate: sale.unitRate.toString(),
+        counterCash: sale.counterCash.toString(),
         customerName: sale.customerName || '',
         customerId: sale.customerId || '',
         notes: sale.notes || '',
         isCreditor: sale.isCreditor || false,
-        amountLeft: sale.amountLeft || 0
       });
       setShowEditModal(true);
     } else if (cashOnly) {
@@ -857,7 +854,7 @@ const Sales: React.FC = () => {
             <div className="flex gap-2">
               <button
                 className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
-                onClick={() => openModal()}
+                onClick={() => openModal(null)}
                 disabled={isSubmitting}
               >
                 <Plus size={16} />
@@ -865,7 +862,7 @@ const Sales: React.FC = () => {
               </button>
               <button
                 className="btn btn-secondary flex items-center gap-2 px-4 py-2 text-sm md:text-base disabled:opacity-50"
-                onClick={() => openModal(undefined, true)}
+                onClick={() => openModal(null, true)}
                 disabled={isSubmitting}
               >
                 <DollarSign size={16} />
@@ -929,7 +926,7 @@ const Sales: React.FC = () => {
                 <TrendingUp size={20} />
               </div>
               <div className="stat-value text-xl md:text-2xl font-bold text-gray-900 mt-2">
-                Rs.{totalUnits > 0 ? (totalSales / totalUnits).toFixed(2) : '0'}
+                Rs.{totalUnits > 0 ? (totalSales / totalUnits).toFixed(2) : '0.00'}
               </div>
               <div className="stat-label text-sm md:text-base text-gray-600">Avg. Rate</div>
             </div>
@@ -966,7 +963,9 @@ const Sales: React.FC = () => {
                 {sales.map((sale) => (
                   <tr key={sale._id} className="border-b">
                     <td className="p-2 md:p-3">{new Date(sale.createdAt).toLocaleTimeString()}</td>
-                    <td className="p-2 md:p-3">{sale.customerName || '-'}</td>
+                    <td className="p-2 md:p-3">
+                      {sale.customerName || (sale.customerId && customers.find((c) => c._id === sale.customerId)?.name) || '-'}
+                    </td>
                     <td className="p-2 md:p-3">{sale.units || 0}</td>
                     <td className="p-2 md:p-3">Rs.{(sale.unitRate || 0).toLocaleString()}</td>
                     <td className="p-2 md:p-3 font-semibold text-green-600">
@@ -974,23 +973,21 @@ const Sales: React.FC = () => {
                     </td>
                     <td className="p-2 md:p-3">Rs.{(sale.counterCash || 0).toLocaleString()}</td>
                     <td className="p-2 md:p-3">
-                      <span className={`badge p-1 text-xs md:text-sm ${sale.amountLeft === 0 ? 'badge-success' : 'badge-warning'}`}>
+                      <span
+                        className={`badge p-1 text-xs md:text-sm ${
+                          sale.amountLeft === 0 ? 'badge-success' : 'badge-warning'
+                        }`}
+                      >
                         Rs.{(sale.amountLeft || 0).toLocaleString()}
                       </span>
                     </td>
                     <td className="p-2 md:p-3">{sale.notes || '-'}</td>
                     <td className="p-2 md:p-3">
                       <div className="flex gap-2">
-                        <button
-                          className="btn btn-secondary text-sm"
-                          onClick={() => openModal(sale)}
-                        >
+                        <button className="btn btn-secondary text-sm" onClick={() => openModal(sale)}>
                           <Edit size={16} />
                         </button>
-                        <button
-                          className="btn btn-danger text-sm"
-                          onClick={() => handleDelete(sale._id)}
-                        >
+                        <button className="btn btn-danger text-sm" onClick={() => handleDelete(sale._id)}>
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1007,7 +1004,7 @@ const Sales: React.FC = () => {
             </div>
             <button
               className="btn btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base"
-              onClick={() => openModal()}
+              onClick={() => openModal(null)}
               disabled={isSubmitting}
             >
               <Plus size={16} />
@@ -1019,11 +1016,17 @@ const Sales: React.FC = () => {
 
       {/* Add Modal */}
       {showModal && (
-        <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+        <div
+          className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowModal(false)}
+        >
           <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header flex justify-between items-center mb-4">
               <h2 className="modal-title text-xl font-semibold text-gray-900">Record New Sale</h2>
-              <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowModal(false)}>
+              <button
+                className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700"
+                onClick={() => setShowModal(false)}
+              >
                 ×
               </button>
             </div>
@@ -1074,11 +1077,13 @@ const Sales: React.FC = () => {
                     type="number"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.units}
-                    onChange={(e) => {
-                      const units = parseInt(e.target.value) || 0;
-                      const unitRate = parseFloat(formData.unitRate) || 0;
-                      setFormData({ ...formData, units: e.target.value, totalBill: (units * unitRate).toString() });
-                    }}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        units: e.target.value,
+                        totalBill: (parseInt(e.target.value) || 0) * (parseFloat(formData.unitRate) || 0),
+                      })
+                    }
                     min="0"
                     required
                   />
@@ -1091,11 +1096,13 @@ const Sales: React.FC = () => {
                     step="0.01"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.unitRate}
-                    onChange={(e) => {
-                      const unitRate = parseFloat(e.target.value) || 0;
-                      const units = parseInt(formData.units) || 0;
-                      setFormData({ ...formData, unitRate: e.target.value, totalBill: (units * unitRate).toString() });
-                    }}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        unitRate: e.target.value,
+                        totalBill: (parseInt(formData.units) || 0) * (parseFloat(e.target.value) || 0),
+                      })
+                    }
                     min="0"
                     required
                   />
@@ -1105,13 +1112,8 @@ const Sales: React.FC = () => {
               <div className="form-group mt-4">
                 <label className="form-label block text-sm font-medium text-gray-700">Total Bill</label>
                 <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
-                  Rs.{(parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0')).toLocaleString()}
+                  Rs.{(parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0).toLocaleString()}
                 </div>
-                {formData.amountLeft > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Amount Left: Rs.{formData.amountLeft.toLocaleString()}
-                  </div>
-                )}
               </div>
 
               <div className="form-group mt-4">
@@ -1121,16 +1123,13 @@ const Sales: React.FC = () => {
                   step="0.01"
                   className="form-input w-full p-2 border rounded text-sm"
                   value={formData.counterCash}
-                  onChange={(e) => {
-                    const cash = parseFloat(e.target.value) || 0;
-                    const totalBill = parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0');
-                    setFormData((prev) => ({
-                      ...prev,
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
                       counterCash: e.target.value,
-                      amountLeft: prev.isCreditor ? Math.max(0, totalBill - cash) : 0,
-                      isCreditor: prev.isCreditor || cash < totalBill
-                    }));
-                  }}
+                      isCreditor: formData.isCreditor || parseFloat(e.target.value) < ((parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0)),
+                    })
+                  }
                   min="0"
                   required
                 />
@@ -1173,11 +1172,17 @@ const Sales: React.FC = () => {
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
+        <div
+          className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowEditModal(false)}
+        >
           <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header flex justify-between items-center mb-4">
               <h2 className="modal-title text-xl font-semibold text-gray-900">Edit Sale</h2>
-              <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowEditModal(false)}>
+              <button
+                className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700"
+                onClick={() => setShowEditModal(false)}
+              >
                 ×
               </button>
             </div>
@@ -1228,11 +1233,13 @@ const Sales: React.FC = () => {
                     type="number"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.units}
-                    onChange={(e) => {
-                      const units = parseInt(e.target.value) || 0;
-                      const unitRate = parseFloat(formData.unitRate) || 0;
-                      setFormData({ ...formData, units: e.target.value, totalBill: (units * unitRate).toString() });
-                    }}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        units: e.target.value,
+                        totalBill: (parseInt(e.target.value) || 0) * (parseFloat(formData.unitRate) || 0),
+                      })
+                    }
                     min="0"
                     required
                   />
@@ -1245,11 +1252,13 @@ const Sales: React.FC = () => {
                     step="0.01"
                     className="form-input w-full p-2 border rounded text-sm"
                     value={formData.unitRate}
-                    onChange={(e) => {
-                      const unitRate = parseFloat(e.target.value) || 0;
-                      const units = parseInt(formData.units) || 0;
-                      setFormData({ ...formData, unitRate: e.target.value, totalBill: (units * unitRate).toString() });
-                    }}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        unitRate: e.target.value,
+                        totalBill: (parseInt(formData.units) || 0) * (parseFloat(e.target.value) || 0),
+                      })
+                    }
                     min="0"
                     required
                   />
@@ -1259,13 +1268,8 @@ const Sales: React.FC = () => {
               <div className="form-group mt-4">
                 <label className="form-label block text-sm font-medium text-gray-700">Total Bill</label>
                 <div className="p-2 bg-gray-50 border border-gray-200 rounded text-lg font-semibold text-green-600">
-                  Rs.{(parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0')).toLocaleString()}
+                  Rs.{(parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0).toLocaleString()}
                 </div>
-                {formData.amountLeft > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Amount Left: Rs.{formData.amountLeft.toLocaleString()}
-                  </div>
-                )}
               </div>
 
               <div className="form-group mt-4">
@@ -1275,16 +1279,13 @@ const Sales: React.FC = () => {
                   step="0.01"
                   className="form-input w-full p-2 border rounded text-sm"
                   value={formData.counterCash}
-                  onChange={(e) => {
-                    const cash = parseFloat(e.target.value) || 0;
-                    const totalBill = parseInt(formData.units || '0') * parseFloat(formData.unitRate || '0');
-                    setFormData((prev) => ({
-                      ...prev,
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
                       counterCash: e.target.value,
-                      amountLeft: prev.isCreditor ? Math.max(0, totalBill - cash) : 0,
-                      isCreditor: prev.isCreditor || cash < totalBill
-                    }));
-                  }}
+                      isCreditor: formData.isCreditor || parseFloat(e.target.value) < ((parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0)),
+                    })
+                  }
                   min="0"
                   required
                 />
@@ -1327,11 +1328,17 @@ const Sales: React.FC = () => {
 
       {/* Cash Only Modal */}
       {showCashOnlyModal && (
-        <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCashOnlyModal(false)}>
+        <div
+          className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowCashOnlyModal(false)}
+        >
           <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header flex justify-between items-center mb-4">
               <h2 className="modal-title text-xl font-semibold text-gray-900">Record Cash Only Sale</h2>
-              <button className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700" onClick={() => setShowCashOnlyModal(false)}>
+              <button
+                className="modal-close text-2xl font-bold text-gray-500 hover:text-gray-700"
+                onClick={() => setShowCashOnlyModal(false)}
+              >
                 ×
               </button>
             </div>
