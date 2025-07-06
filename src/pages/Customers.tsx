@@ -488,6 +488,7 @@ const Customers: React.FC = () => {
 
   const fetchCustomers = async () => {
     try {
+      setIsLoading(true);
       const data = await customerService.getAll();
       setCustomers(data);
     } catch (error) {
@@ -499,11 +500,14 @@ const Customers: React.FC = () => {
 
   const fetchHistory = async (customerId: string) => {
     try {
+      setIsLoading(true); // Show loading state while fetching history
       const data = await customerService.getHistory(customerId);
       setHistoryData(data);
       setShowHistoryModal(true);
     } catch (error) {
       console.error('Error fetching history:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -584,7 +588,7 @@ const Customers: React.FC = () => {
     customer.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
+  if (isLoading && !showHistoryModal) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
         <div className="spinner"></div>
@@ -821,7 +825,7 @@ const Customers: React.FC = () => {
       {/* History Modal */}
       {showHistoryModal && (
         <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowHistoryModal(false)}>
-          <div className="modal bg-white p-6 rounded-lg shadow-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="modal bg-white p-4 md:p-6 rounded-lg shadow-lg w-full max-w-4xl mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header flex justify-between items-center mb-4">
               <h2 className="modal-title text-xl font-semibold text-gray-900">
                 Purchase History for {selectedCustomer?.name}
@@ -831,7 +835,11 @@ const Customers: React.FC = () => {
               </button>
             </div>
 
-            {historyData.length > 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center py-6">
+                <div className="spinner"></div>
+              </div>
+            ) : historyData.length > 0 ? (
               <div className="table-container overflow-x-auto">
                 <table className="table w-full text-sm md:text-base">
                   <thead>
@@ -861,7 +869,7 @@ const Customers: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <div className="text-center text-gray-600">No purchase history available.</div>
+              <div className="text-center text-gray-600 py-6">No purchase history available.</div>
             )}
 
             <div className="flex justify-end mt-4">
