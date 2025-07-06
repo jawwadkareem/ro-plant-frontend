@@ -637,6 +637,7 @@ const Sales = () => {
   const customerInputRef = useRef<HTMLInputElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [avgSalesPerDay, setAvgSalesPerDay] = useState(0);
+  const [customerOutstanding, setCustomerOutstanding] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -664,6 +665,7 @@ const Sales = () => {
 
   const handleCustomerInput = (value) => {
     setFormData((prev) => ({ ...prev, customerName: value, customerId: '' }));
+    updateOutstandingAmount(value);
     if (value.trim()) {
       const filtered = customers.filter((customer) =>
         customer.name.toLowerCase().includes(value.toLowerCase())
@@ -683,7 +685,16 @@ const Sales = () => {
       customerId: customer._id,
       unitRate: customer.unitRate?.toString() || prev.unitRate,
     }));
+    updateOutstandingAmount(customer.name);
     setShowSuggestions(false);
+  };
+
+  const updateOutstandingAmount = (customerName) => {
+    const customerSales = sales.filter(sale =>
+      sale.customerName === customerName && sale.isCreditor && sale.amountLeft !== undefined
+    );
+    const totalOutstanding = customerSales.reduce((sum, sale) => sum + (sale.amountLeft || 0), 0);
+    setCustomerOutstanding(totalOutstanding);
   };
 
   const handleSubmit = async (e) => {
@@ -805,6 +816,7 @@ const Sales = () => {
     });
     setShowSuggestions(false);
     setSelectedSale(null);
+    setCustomerOutstanding(0);
   };
 
   const openModal = (sale, cashOnly = false) => {
@@ -820,6 +832,7 @@ const Sales = () => {
         notes: sale.notes || '',
         isCreditor: sale.isCreditor || false,
       });
+      updateOutstandingAmount(sale.customerName || '');
       setShowEditModal(true);
     } else if (cashOnly) {
       resetForm();
@@ -1067,6 +1080,11 @@ const Sales = () => {
                       ))}
                     </ul>
                   )}
+                  {formData.customerName && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Total Outstanding: Rs.{customerOutstanding.toLocaleString()}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1123,13 +1141,23 @@ const Sales = () => {
                   step="0.01"
                   className="form-input w-full p-2 border rounded text-sm"
                   value={formData.counterCash}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      counterCash: e.target.value,
-                      isCreditor: formData.isCreditor || parseFloat(e.target.value) < ((parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0)),
-                    })
-                  }
+                  onChange={(e) => {
+                    const newCounterCash = e.target.value;
+                    setFormData((prev) => {
+                      const units = parseInt(prev.units) || 0;
+                      const unitRate = parseFloat(prev.unitRate) || 0;
+                      const totalBill = units * unitRate;
+                      const isCreditor = parseFloat(newCounterCash) < totalBill;
+                      const newAmountLeft = isCreditor ? Math.max(0, totalBill - parseFloat(newCounterCash)) : 0;
+                      updateOutstandingAmount(prev.customerName, newAmountLeft);
+                      return {
+                        ...prev,
+                        counterCash: newCounterCash,
+                        isCreditor,
+                        amountLeft: newAmountLeft,
+                      };
+                    });
+                  }}
                   min="0"
                   required
                 />
@@ -1223,6 +1251,11 @@ const Sales = () => {
                       ))}
                     </ul>
                   )}
+                  {formData.customerName && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Total Outstanding: Rs.{customerOutstanding.toLocaleString()}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1279,13 +1312,23 @@ const Sales = () => {
                   step="0.01"
                   className="form-input w-full p-2 border rounded text-sm"
                   value={formData.counterCash}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      counterCash: e.target.value,
-                      isCreditor: formData.isCreditor || parseFloat(e.target.value) < ((parseInt(formData.units) || 0) * (parseFloat(formData.unitRate) || 0)),
-                    })
-                  }
+                  onChange={(e) => {
+                    const newCounterCash = e.target.value;
+                    setFormData((prev) => {
+                      const units = parseInt(prev.units) || 0;
+                      const unitRate = parseFloat(prev.unitRate) || 0;
+                      const totalBill = units * unitRate;
+                      const isCreditor = parseFloat(newCounterCash) < totalBill;
+                      const newAmountLeft = isCreditor ? Math.max(0, totalBill - parseFloat(newCounterCash)) : 0;
+                      updateOutstandingAmount(prev.customerName, newAmountLeft);
+                      return {
+                        ...prev,
+                        counterCash: newCounterCash,
+                        isCreditor,
+                        amountLeft: newAmountLeft,
+                      };
+                    });
+                  }}
                   min="0"
                   required
                 />
