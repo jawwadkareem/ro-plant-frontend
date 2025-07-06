@@ -481,7 +481,7 @@ const Customers: React.FC = () => {
   });
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false); // Separate loading state for history
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -501,15 +501,15 @@ const Customers: React.FC = () => {
 
   const fetchHistory = async (customerId: string) => {
     try {
-      setIsHistoryLoading(true); // Start loading for history
+      setIsHistoryLoading(true);
       const data = await customerService.getHistory(customerId);
-      setHistoryData(data || []); // Ensure data is an array even if empty
+      setHistoryData(data || []);
       setShowHistoryModal(true);
     } catch (error) {
       console.error('Error fetching history:', error);
-      setHistoryData([]); // Reset to empty array on error
+      setHistoryData([]);
     } finally {
-      setIsHistoryLoading(false); // Stop loading
+      setIsHistoryLoading(false);
     }
   };
 
@@ -827,7 +827,7 @@ const Customers: React.FC = () => {
       {/* History Modal */}
       {showHistoryModal && (
         <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowHistoryModal(false)}>
-          <div className="modal bg-white p-4 md:p-6 rounded-lg shadow-lg w-full max-w-4xl mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="modal bg-white p-4 md:p-6 rounded-lg shadow-lg w-full max-w-5xl mx-2 sm:mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header flex justify-between items-center mb-4">
               <h2 className="modal-title text-xl font-semibold text-gray-900">
                 Purchase History for {selectedCustomer?.name}
@@ -843,28 +843,28 @@ const Customers: React.FC = () => {
               </div>
             ) : historyData.length > 0 ? (
               <div className="table-container overflow-x-auto">
-                <table className="table w-full text-sm md:text-base">
+                <table className="table w-full min-w-[600px] text-sm md:text-base">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="p-2 md:p-3 text-left">Date</th>
-                      <th className="p-2 md:p-3 text-left">Sale ID</th>
-                      <th className="p-2 md:p-3 text-left">Amount</th>
-                      <th className="p-2 md:p-3 text-left">Units</th>
-                      <th className="p-2 md:p-3 text-left">Cash Paid</th>
-                      <th className="p-2 md:p-3 text-left">Notes</th>
+                      <th className="p-2 md:p-3 text-left whitespace-nowrap">Date</th>
+                      <th className="p-2 md:p-3 text-left whitespace-nowrap">Sale ID</th>
+                      <th className="p-2 md:p-3 text-left whitespace-nowrap">Amount</th>
+                      <th className="p-2 md:p-3 text-left whitespace-nowrap">Units</th>
+                      <th className="p-2 md:p-3 text-left whitespace-nowrap">Cash Paid</th>
+                      <th className="p-2 md:p-3 text-left whitespace-nowrap">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {historyData.map((item) => (
                       <tr key={item._id} className="border-b">
-                        <td className="p-2 md:p-3">{new Date(item.date).toLocaleDateString()}</td>
-                        <td className="p-2 md:p-3">{item.saleId}</td>
-                        <td className="p-2 md:p-3 font-semibold text-green-600">
+                        <td className="p-2 md:p-3 whitespace-nowrap">{new Date(item.date).toLocaleDateString()}</td>
+                        <td className="p-2 md:p-3 whitespace-nowrap">{item.saleId}</td>
+                        <td className="p-2 md:p-3 font-semibold text-green-600 whitespace-nowrap">
                           Rs.{item.amount.toLocaleString()}
                         </td>
-                        <td className="p-2 md:p-3">{item.units}</td>
-                        <td className="p-2 md:p-3">Rs.{item.counterCash.toLocaleString()}</td>
-                        <td className="p-2 md:p-3">{item.notes || '-'}</td>
+                        <td className="p-2 md:p-3 whitespace-nowrap">{item.units}</td>
+                        <td className="p-2 md:p-3 whitespace-nowrap">Rs.{item.counterCash.toLocaleString()}</td>
+                        <td className="p-2 md:p-3 whitespace-nowrap">{item.notes || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
